@@ -1,0 +1,525 @@
+[
+ {
+  "advanceTicketsEndDate": "2026-11-12T18:00:00.000Z",
+  "advanceTicketsStartDate": "2026-10-27T08:00:00.000Z",
+  "cinemarkMovieId": 112507,
+  "hasPresaleShowtimes": false,
+  "movieDirector": "",
+  "movieGenre": "Drama",
+  "movieId": 112507,
+  "movieLanguage": "en",
+  "movieOfficialSite": "",
+  "moviePosterAlt": "Ebenezer poster",
+  "moviePosterUrl": "/papi/media/file/umb---4xohtg01---mdebenezernewposter.jpg?prefix=media",
+  "movieProducer": "",
+  "movieRating": "PG-13",
+  "movieReleaseDate": "2026-11-13T00:00:00.000Z",
+  "movieRuntime": "2 hr 0 min",
+  "movieRuntimeMinutes": 120,
+  "movieSlug": "ebenezer",
+  "movieSynopsis": "This November, Johnny Depp is Ebenezer Scrooge. The name you know, the story you don\u2019t. From Ti West, EBENEZER also star",
+  "movieTitle": "Ebenezer",
+  "movieTitleAttributeList": [],
+  "movieTrailerUrl": "https://www.youtube.com/embed/l_Ozo1xUgbU?rel=0&mute=1",
+  "movieUrl": "/movies/ebenezer",
+  "movieWriter": "",
+  "showtimesByPrintType": [
+   {
+    "auditoriumAttributes": [
+     {
+      "brokerKey": "XD",
+      "displayName": "Cinemark XD"
+     },
+     {
+      "brokerKey": "D-BOX",
+      "displayName": "D-BOX"
+     }
+    ],
+    "passRestricted": false,
+    "printTypeName": "Luxury Lounger XD XD D-Box",
+    "printTypeText": "Luxury Lounger",
+    "showtimeAttributes": [
+     {
+      "brokerKey": "MOVIE_CC",
+      "displayName": "Closed Caption"
+     },
+     {
+      "brokerKey": "AUDITORIUM_ALD",
+      "displayName": "Assisted Listening Device"
+     },
+     {
+      "brokerKey": "MOVIE_DN",
+      "displayName": "Descriptive Narration"
+     }
+    ],
+    "showtimes": [
+     {
+      "id": 436647,
+      "isPrivateWatchParty": false,
+      "linkedShowtimeId": 436637,
+      "midnightShowtime": false,
+      "passRestricted": false,
+      "seatingConfigId": 93,
+      "seatsAvailable": 79,
+      "startTime": "2026-11-14T15:15:00.000Z",
+      "status": 0,
+      "totalSeats": 79
+     },
+     {
+      "id": 436646,
+      "isPrivateWatchParty": false,
+      "linkedShowtimeId": 436636,
+      "midnightShowtime": false,
+      "passRestricted": false,
+      "seatingConfigId": 93,
+      "seatsAvailable": 72,
+      "startTime": "2026-11-14T18:15:00.000Z",
+      "status": 0,
+      "totalSeats": 79
+     }
+    ]
+   },
+   {
+    "auditoriumAttributes": [
+     {
+      "brokerKey": "XD",
+      "displayName": "Cinemark XD"
+     },
+     {
+      "brokerKey": "Reserve Level",
+      "displayName": "Reserve Level"
+     }
+    ],
+    "passRestricted": false,
+    "printTypeName": "Reserve Level Luxury Lounger XD",
+    "printTypeText": "Luxury Lounger",
+    "showtimeAttributes": [
+     {
+      "brokerKey": "MOVIE_CC",
+      "displayName": "Closed Caption"
+     },
+     {
+      "brokerKey": "AUDITORIUM_ALD",
+      "displayName": "Assisted Listening Device"
+     },
+     {
+      "brokerKey": "MOVIE_DN",
+      "displayName": "Descriptive Narration"
+     }
+    ],
+    "showtimes": [
+     {
+      "id": 436642,
+      "isPrivateWatchParty": false,
+      "linkedShowtimeId": 0,
+      "midnightShowtime": false,
+      "passRestricted": false,
+      "seatingConfigId": 68,
+      "seatsAvailable": 30,
+      "startTime": "2026-11-14T15:15:00.000Z",
+      "status": 0,
+      "totalSeats": 33
+     },
+     {
+      "id": 436641,
+      "isPrivateWatchParty": false,
+      "linkedShowtimeId": 0,
+      "midnightShowtime": false,
+      "passRestricted": false,
+      "seatingConfigId": 68,
+      "seatsAvailable": 31,
+      "startTime": "2026-11-14T18:15:00.000Z",
+      "status": 0,
+      "totalSeats": 33
+     }
+    ]
+   },
+   {
+    "auditoriumAttributes": [
+     {
+      "brokerKey": "D-BOX",
+      "displayName": "D-BOX"
+     },
+     {
+      "brokerKey": "Standard Format",
+      "displayName": "Standard Format"
+     }
+    ],
+    "passRestricted": false,
+    "printTypeName": "Standard Format Luxury Lounger D-Box",
+    "printTypeText": "Luxury Lounger",
+    "showtimeAttributes": [
+     {
+      "brokerKey": "MOVIE_CC",
+      "displayName": "Closed Caption"
+     },
+     {
+      "brokerKey": "AUDITORIUM_ALD",
+      "displayName": "Assisted Listening Device"
+     },
+     {
+      "brokerKey": "MOVIE_DN",
+      "displayName": "Descriptive Narration"
+     }
+    ],
+    "showtimes": [
+     {
+      "id": 436997,
+      "isPrivateWatchParty": false,
+      "linkedShowtimeId": 437020,
+      "midnightShowtime": false,
+      "passRestricted": false,
+      "seatingConfigId": 89,
+      "seatsAvailable": 68,
+      "startTime": "2026-11-14T15:45:00.000Z",
+      "status": 0,
+      "totalSeats": 68
+     },
+     {
+      "id": 436996,
+      "isPrivateWatchParty": false,
+      "linkedShowtimeId": 437018,
+      "midnightShowtime": false,
+      "passRestricted": false,
+      "seatingConfigId": 89,
+      "seatsAvailable": 68,
+      "startTime": "2026-11-14T18:45:00.000Z",
+      "status": 0,
+      "totalSeats": 68
+     }
+    ]
+   },
+   {
+    "auditoriumAttributes": [
+     {
+      "brokerKey": "Reserve Level",
+      "displayName": "Reserve Level"
+     },
+     {
+      "brokerKey": "Standard Format",
+      "displayName": "Standard Format"
+     }
+    ],
+    "passRestricted": false,
+    "printTypeName": "Standard Format Luxury Lounger Reserve Level",
+    "printTypeText": "Luxury Lounger",
+    "showtimeAttributes": [
+     {
+      "brokerKey": "MOVIE_CC",
+      "displayName": "Closed Caption"
+     },
+     {
+      "brokerKey": "AUDITORIUM_ALD",
+      "displayName": "Assisted Listening Device"
+     },
+     {
+      "brokerKey": "MOVIE_DN",
+      "displayName": "Descriptive Narration"
+     }
+    ],
+    "showtimes": [
+     {
+      "id": 435431,
+      "isPrivateWatchParty": false,
+      "linkedShowtimeId": 435414,
+      "midnightShowtime": false,
+      "passRestricted": false,
+      "seatingConfigId": 50,
+      "seatsAvailable": 85,
+      "startTime": "2026-11-14T14:40:00.000Z",
+      "status": 0,
+      "totalSeats": 85
+     },
+     {
+      "id": 435432,
+      "isPrivateWatchParty": false,
+      "linkedShowtimeId": 435415,
+      "midnightShowtime": false,
+      "passRestricted": false,
+      "seatingConfigId": 50,
+      "seatsAvailable": 75,
+      "startTime": "2026-11-14T20:40:00.000Z",
+      "status": 0,
+      "totalSeats": 85
+     }
+    ]
+   },
+   {
+    "auditoriumAttributes": [
+     {
+      "brokerKey": "Reserve Level",
+      "displayName": "Reserve Level"
+     }
+    ],
+    "passRestricted": false,
+    "printTypeName": "Reserve Level Luxury Lounger",
+    "printTypeText": "Luxury Lounger",
+    "showtimeAttributes": [
+     {
+      "brokerKey": "MOVIE_CC",
+      "displayName": "Closed Caption"
+     },
+     {
+      "brokerKey": "AUDITORIUM_ALD",
+      "displayName": "Assisted Listening Device"
+     },
+     {
+      "brokerKey": "MOVIE_DN",
+      "displayName": "Descriptive Narration"
+     }
+    ],
+    "showtimes": [
+     {
+      "id": 436988,
+      "isPrivateWatchParty": false,
+      "linkedShowtimeId": 0,
+      "midnightShowtime": false,
+      "passRestricted": false,
+      "seatingConfigId": 60,
+      "seatsAvailable": 25,
+      "startTime": "2026-11-14T15:45:00.000Z",
+      "status": 0,
+      "totalSeats": 25
+     },
+     {
+      "id": 436987,
+      "isPrivateWatchParty": false,
+      "linkedShowtimeId": 0,
+      "midnightShowtime": false,
+      "passRestricted": false,
+      "seatingConfigId": 60,
+      "seatsAvailable": 24,
+      "startTime": "2026-11-14T18:45:00.000Z",
+      "status": 0,
+      "totalSeats": 25
+     }
+    ]
+   },
+   {
+    "auditoriumAttributes": [
+     {
+      "brokerKey": "Reserve Level",
+      "displayName": "Reserve Level"
+     },
+     {
+      "brokerKey": "Standard Format",
+      "displayName": "Standard Format"
+     },
+     {
+      "brokerKey": "Open Caption",
+      "displayName": "On-Screen Captions"
+     }
+    ],
+    "passRestricted": false,
+    "printTypeName": "Open Caption Standard Format Luxury Lounger Digital Reserve Level",
+    "printTypeText": "Luxury Lounger Digital",
+    "showtimeAttributes": [
+     {
+      "brokerKey": "MOVIE_CC",
+      "displayName": "Closed Caption"
+     },
+     {
+      "brokerKey": "AUDITORIUM_ALD",
+      "displayName": "Assisted Listening Device"
+     },
+     {
+      "brokerKey": "MOVIE_DN",
+      "displayName": "Descriptive Narration"
+     }
+    ],
+    "showtimes": [
+     {
+      "id": 435423,
+      "isPrivateWatchParty": false,
+      "linkedShowtimeId": 435424,
+      "midnightShowtime": false,
+      "passRestricted": false,
+      "seatingConfigId": 50,
+      "seatsAvailable": 85,
+      "startTime": "2026-11-14T17:40:00.000Z",
+      "status": 0,
+      "totalSeats": 85
+     }
+    ]
+   }
+  ],
+  "theaterId": 1072
+ },
+ {
+  "advanceTicketsEndDate": "2026-11-05T18:00:00.000Z",
+  "advanceTicketsStartDate": "2026-10-06T09:00:00.000Z",
+  "cinemarkMovieId": 111246,
+  "hasPresaleShowtimes": false,
+  "movieDirector": "",
+  "movieGenre": "Action, Adventure, Drama, Science Fiction",
+  "movieId": 111246,
+  "movieLanguage": "Japanese with English Subtitles",
+  "movieOfficialSite": "",
+  "moviePosterAlt": "Godzilla Minus Zero (Japanese with English Subtitles) poster",
+  "moviePosterUrl": "/papi/media/file/umb---ga4bfobv---mdgodzillaminuszeroposter.jpg?prefix=media",
+  "movieProducer": "",
+  "movieRating": "R",
+  "movieReleaseDate": "2026-11-06T00:00:00.000Z",
+  "movieRuntime": "2 hr 15 min",
+  "movieRuntimeMinutes": 135,
+  "movieSlug": "godzilla-minus-zero",
+  "movieSynopsis": "War reduced Japan to zero, and Godzilla plunged it into minus. Two years have passed since then, and the country has fac",
+  "movieTitle": "Godzilla Minus Zero (Japanese with English Subtitles)",
+  "movieTitleAttributeList": [],
+  "movieTrailerUrl": "https://www.youtube.com/embed/kw0YhiqOPFg?rel=0&mute=1",
+  "movieUrl": "/movies/godzilla-minus-zero",
+  "movieWriter": "",
+  "showtimesByPrintType": [
+   {
+    "auditoriumAttributes": [
+     {
+      "brokerKey": "XD",
+      "displayName": "Cinemark XD"
+     },
+     {
+      "brokerKey": "D-BOX",
+      "displayName": "D-BOX"
+     }
+    ],
+    "passRestricted": false,
+    "printTypeName": "Luxury Lounger XD Japanese Spoken with English Subtitles XD D-Box",
+    "printTypeText": "Luxury Lounger Japanese Spoken with English Subtitles",
+    "showtimeAttributes": [
+     {
+      "brokerKey": "MOVIE_CC",
+      "displayName": "Closed Caption"
+     },
+     {
+      "brokerKey": "AUDITORIUM_ALD",
+      "displayName": "Assisted Listening Device"
+     }
+    ],
+    "showtimes": [
+     {
+      "id": 437009,
+      "isPrivateWatchParty": false,
+      "linkedShowtimeId": 436985,
+      "midnightShowtime": false,
+      "passRestricted": false,
+      "seatingConfigId": 99,
+      "seatsAvailable": 70,
+      "startTime": "2026-11-14T20:30:00.000Z",
+      "status": 0,
+      "totalSeats": 70
+     },
+     {
+      "id": 437007,
+      "isPrivateWatchParty": false,
+      "linkedShowtimeId": 436983,
+      "midnightShowtime": false,
+      "passRestricted": false,
+      "seatingConfigId": 99,
+      "seatsAvailable": 65,
+      "startTime": "2026-11-15T00:00:00.000Z",
+      "status": 0,
+      "totalSeats": 70
+     }
+    ]
+   },
+   {
+    "auditoriumAttributes": [
+     {
+      "brokerKey": "XD",
+      "displayName": "Cinemark XD"
+     }
+    ],
+    "passRestricted": false,
+    "printTypeName": "Premier XD Japanese Spoken with English Subtitles - Ages 21 Up",
+    "printTypeText": "Premier Japanese Spoken with English Subtitles Ages 21 Up",
+    "showtimeAttributes": [
+     {
+      "brokerKey": "MOVIE_CC",
+      "displayName": "Closed Caption"
+     },
+     {
+      "brokerKey": "AUDITORIUM_ALD",
+      "displayName": "Assisted Listening Device"
+     }
+    ],
+    "showtimes": [
+     {
+      "id": 437016,
+      "isPrivateWatchParty": false,
+      "linkedShowtimeId": 0,
+      "midnightShowtime": false,
+      "passRestricted": false,
+      "seatingConfigId": 61,
+      "seatsAvailable": 36,
+      "startTime": "2026-11-14T20:30:00.000Z",
+      "status": 0,
+      "totalSeats": 38
+     },
+     {
+      "id": 437014,
+      "isPrivateWatchParty": false,
+      "linkedShowtimeId": 0,
+      "midnightShowtime": false,
+      "passRestricted": false,
+      "seatingConfigId": 61,
+      "seatsAvailable": 38,
+      "startTime": "2026-11-15T00:00:00.000Z",
+      "status": 0,
+      "totalSeats": 38
+     }
+    ]
+   },
+   {
+    "auditoriumAttributes": [
+     {
+      "brokerKey": "D-BOX",
+      "displayName": "D-BOX"
+     },
+     {
+      "brokerKey": "Standard Format",
+      "displayName": "Standard Format"
+     }
+    ],
+    "passRestricted": false,
+    "printTypeName": "Japanese Spoken with English Subtitles Standard Format Luxury Lounger D-Box",
+    "printTypeText": "Japanese Spoken with English Subtitles Luxury Lounger",
+    "showtimeAttributes": [
+     {
+      "brokerKey": "MOVIE_CC",
+      "displayName": "Closed Caption"
+     },
+     {
+      "brokerKey": "AUDITORIUM_ALD",
+      "displayName": "Assisted Listening Device"
+     }
+    ],
+    "showtimes": [
+     {
+      "id": 435422,
+      "isPrivateWatchParty": false,
+      "linkedShowtimeId": 435439,
+      "midnightShowtime": false,
+      "passRestricted": false,
+      "seatingConfigId": 87,
+      "seatsAvailable": 53,
+      "startTime": "2026-11-14T14:35:00.000Z",
+      "status": 0,
+      "totalSeats": 57
+     },
+     {
+      "id": 435418,
+      "isPrivateWatchParty": false,
+      "linkedShowtimeId": 435435,
+      "midnightShowtime": false,
+      "passRestricted": false,
+      "seatingConfigId": 87,
+      "seatsAvailable": 57,
+      "startTime": "2026-11-14T17:50:00.000Z",
+      "status": 0,
+      "totalSeats": 57
+     }
+    ]
+   }
+  ],
+  "theaterId": 1072
+ }
+]

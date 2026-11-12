@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Showtimes{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="alternate" type="application/rss+xml" title="New listings" href="/feed.xml">
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="/">Showtimes<span>Baltimore</span></a>
+    <nav>
+      <a href="/feed.xml" title="RSS feed of new listings (keeps your current filters if you copy it from the filter bar)">RSS</a>
+      <a href="/status">Status</a>
+    </nav>
+  </header>
+  <main>{% block content %}{% endblock %}</main>
+</body>
+</html>

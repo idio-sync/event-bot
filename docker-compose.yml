@@ -1,0 +1,12 @@
+services:
+  showtimes:
+    build: .
+    image: baltimore-showtimes:latest
+    container_name: showtimes
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    env_file:
+      - .env
+    restart: unless-stopped

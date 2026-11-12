@@ -1,0 +1,233 @@
+{
+ "nounce": "SaIMghKAX",
+ "location": {
+  "rtn": "997115",
+  "name": "The Senator Theatre",
+  "address": "5904 York Road",
+  "city": "Baltimore",
+  "state": "MD",
+  "postal": "21212",
+  "lat": 39.36343,
+  "lon": -76.61012,
+  "timeZoneOffset": -5,
+  "enableConcWithoutTicketPurchase": false,
+  "salesAfterShowtimeMinutes": 0,
+  "Amenitys": [
+   {
+    "text": "OCAP",
+    "desc": "Open Caption",
+    "sortNumber": 0,
+    "settingIndex": 2,
+    "bitIndex": 11
+   },
+   {
+    "text": "3D",
+    "desc": "ThreeD",
+    "sortNumber": -1,
+    "settingIndex": 1,
+    "bitIndex": 12
+   }
+  ],
+  "Titles": [
+   {
+    "title": "COLIN & BRAD LIVE PERFORMANCE",
+    "rating": "NR",
+    "lengthsecs": 5400,
+    "storyCode": "12921",
+    "ReleaseUS": "2026-09-17T00:00:00",
+    "startDateLocation": "2027-01-28T00:00:00",
+    "sortOrder": 0,
+    "synopsis": "Get ready for an evening of side-splitting laughter as legendary improv duo Colin Mochrie and Brad Sherwood take the sta",
+    "youTubeId": null,
+    "webSite": "www.colinandbradshow.com/",
+    "Graphics": [
+     4,
+     5,
+     6,
+     7
+    ],
+    "Info": [
+     1,
+     0,
+     0
+    ],
+    "Shows": [
+     {
+      "time": "2027-01-28T19:00:00",
+      "Id": 21986,
+      "place": 3,
+      "info": [
+       7,
+       7,
+       33
+      ],
+      "so": false
+     }
+    ]
+   },
+   {
+    "title": "DUNE PART THREE",
+    "rating": "PG13",
+    "lengthsecs": 9600,
+    "storyCode": "12861",
+    "ReleaseUS": "2026-12-18T00:00:00",
+    "startDateLocation": "2026-12-17T00:00:00",
+    "sortOrder": 0,
+    "synopsis": "As Emperor, Paul Atreides grapples with the consequences of his rise to power as political conspiracies and a galaxy-spa",
+    "youTubeId": "NdvqHc56lE0",
+    "webSite": "www.dunemovie.com/",
+    "Graphics": [
+     12,
+     13,
+     14,
+     15
+    ],
+    "Info": [
+     1,
+     0,
+     0
+    ],
+    "Shows": [
+     {
+      "time": "2026-12-19T12:15:00",
+      "Id": 21996,
+      "place": 3,
+      "info": [
+       7,
+       7,
+       33
+      ],
+      "so": false
+     },
+     {
+      "time": "2026-12-20T12:45:00",
+      "Id": 22021,
+      "place": 3,
+      "info": [
+       7,
+       7,
+       33
+      ],
+      "so": false
+     },
+     {
+      "time": "2026-12-20T16:00:00",
+      "Id": 22194,
+      "place": 4,
+      "info": [
+       7,
+       7,
+       33
+      ],
+      "so": false
+     }
+    ]
+   },
+   {
+    "title": "WILD HORSE NINE",
+    "rating": "R",
+    "lengthsecs": 7680,
+    "storyCode": "13068",
+    "ReleaseUS": "2026-11-06T00:00:00",
+    "startDateLocation": "2026-11-05T00:00:00",
+    "sortOrder": 0,
+    "synopsis": "Shortly before the 1973 Chilean coup, CIA agents Chris and Lee are dispatched from Santiago to Easter Island by their bu",
+    "youTubeId": "Haw_sznA5aQ",
+    "webSite": "www.searchlightpictures.com/wild-horse-nine",
+    "Graphics": [
+     16,
+     17,
+     18,
+     19
+    ],
+    "Info": [
+     1,
+     0,
+     0
+    ],
+    "Shows": [
+     {
+      "time": "2026-11-12T12:50:00",
+      "Id": 23742,
+      "place": 6,
+      "info": [
+       7,
+       7,
+       33
+      ],
+      "so": false
+     },
+     {
+      "time": "2026-11-12T15:50:00",
+      "Id": 23743,
+      "place": 6,
+      "info": [
+       7,
+       7,
+       33
+      ],
+      "so": false
+     },
+     {
+      "time": "2026-11-16T15:50:00",
+      "Id": 23832,
+      "place": 7,
+      "info": [
+       7,
+       7,
+       33
+      ],
+      "so": false
+     }
+    ]
+   },
+   {
+    "title": "BIRDS",
+    "rating": "PG13",
+    "lengthsecs": 7740,
+    "storyCode": "8338",
+    "ReleaseUS": "1963-03-28T00:00:00",
+    "startDateLocation": "2026-11-11T00:00:00",
+    "sortOrder": 0,
+    "synopsis": "A wealthy San Francisco socialite pursues a potential boyfriend to a small Northern California town that slowly takes a ",
+    "youTubeId": "lCxR7dlavwg&t=33s",
+    "webSite": "www.imdb.com/title/tt0056869/?ref_=fn_al_tt_1",
+    "Graphics": [
+     20,
+     21,
+     22,
+     23
+    ],
+    "Info": [
+     1,
+     0,
+     0
+    ],
+    "Shows": [
+     {
+      "time": "2026-11-16T16:00:00",
+      "Id": 22758,
+      "place": 3,
+      "info": [
+       7,
+       7,
+       33
+      ],
+      "so": false
+     },
+     {
+      "time": "2026-11-15T10:00:00",
+      "Id": 22757,
+      "place": 3,
+      "info": [
+       7,
+       7,
+       33
+      ],
+      "so": false
+     }
+    ]
+   }
+  ]
+ }
+}

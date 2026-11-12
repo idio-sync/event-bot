@@ -1,0 +1,161 @@
+{% extends "_base.html" %}
+{% block title %}Showtimes · Baltimore{% endblock %}
+
+{% macro chips(labels, formats=[]) -%}
+  {%- for l in labels %}<span class="chip chip-{{ l }}">{{ LABELS[l] }}</span>{% endfor -%}
+  {%- for f in formats %}<span class="chip chip-format">{{ f }}</span>{% endfor -%}
+{%- endmacro %}
+
+{% macro status_badges(film) -%}
+  {%- if film.plex -%}
+    {%- if film.plex_link %}<a class="badge badge-plex" href="{{ film.plex_link }}" target="_blank" rel="noopener">{% else %}<span class="badge badge-plex">{% endif -%}
+    {{ "Watched" if film.plex.watched else "In Plex" }}
+    {%- if film.plex_link %}</a>{% else %}</span>{% endif -%}
+  {%- endif -%}
+  {%- if film.radarr -%}
+    <a class="badge badge-radarr" href="{{ film.radarr.link }}" target="_blank" rel="noopener">
+      {{ "Downloaded" if film.radarr.has_file else ("Monitored" if film.radarr.monitored else "In Radarr") }}
+      {%- if not film.radarr.has_file and film.radarr.digital %} · digital {{ film.radarr.digital }}{% endif -%}
+    </a>
+  {%- elif settings.radarr_enabled and film.tmdb_id -%}
+    <form class="inline" method="post" action="/radarr/add/{{ film.tmdb_id }}?next={{ ('/?' ~ query) | urlencode }}">
+      <button class="badge badge-add" type="submit" title="Add to Radarr and search when released">+ Radarr</button>
+    </form>
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro time_link(s) -%}
+  <a class="time{% if s.sold_out %} sold-out{% endif %}{% if 'event' in s.labels %} time-event{% endif %}"
+     href="{{ s.ticket_url }}" target="_blank" rel="noopener"
+     title="{{ s.event_name or s.title }}{% if s.formats %} · {{ s.formats | join(', ') }}{% endif %}{% if s.sold_out %} · sold out{% endif %}">{{ clock(s.start) }}</a>
+{%- endmacro %}
+
+{% macro film_card(film, show_days=True) %}
+<article class="film{% if 'watchlist' in film.labels %} on-watchlist{% endif %}">
+  {% if film.poster %}<img class="poster" src="{{ film.poster }}" alt="" loading="lazy">{% else %}<div class="poster poster-empty">{{ film.title[:1] }}</div>{% endif %}
+  <div class="film-body">
+    <h3>{{ film.title }}{% if film.year %} <span class="year">{{ film.year }}</span>{% endif %}</h3>
+    <div class="meta">
+      {{ chips(film.labels, film.formats) }}
+      {{ status_badges(film) }}
+      {% if film.runtime %}<span class="runtime">{{ film.runtime }} min</span>{% endif %}
+    </div>
+    {% for e in film.events %}<p class="event-name">★ {{ e }}</p>{% endfor %}
+    <dl class="schedule">
+      {% for theater, days in film.theaters.items() %}
+        <dt>{{ THEATERS[theater].short }}</dt>
+        <dd>
+          {% if show_days %}
+            {% for d, shows in days.items() %}
+              <span class="day"><b>{{ "Today" if d == today else day(d) }}</b>{% for s in shows %} {{ time_link(s) }}{% endfor %}</span>
+            {% endfor %}
+          {% else %}
+            {% for s in days %}{{ time_link(s) }} {% endfor %}
+          {% endif %}
+        </dd>
+      {% endfor %}
+    </dl>
+    {% if film.overview %}<details><summary>About</summary><p>{{ film.overview }}</p></details>{% endif %}
+  </div>
+</article>
+{% endmacro %}
+
+{% block content %}
+<form class="filters" method="get" action="/" id="filters">
+  <fieldset class="row">
+    <legend>Theaters</legend>
+    {% for t in enabled %}
+      <label class="toggle"><input type="checkbox" name="theater" value="{{ t }}" {% if t in filters.theaters %}checked{% endif %}><span>{{ THEATERS[t].short }}</span></label>
+    {% endfor %}
+  </fieldset>
+  <fieldset class="row">
+    <legend>Only show</legend>
+    {% for k, label in KINDS.items() %}
+      {% if k != 'watchlist' or settings.plex_watchlist_enabled %}
+      <label class="toggle toggle-{{ k }}"><input type="checkbox" name="kinds" value="{{ k }}" {% if k in filters.kinds %}checked{% endif %}><span>{{ label }}</span></label>
+      {% endif %}
+    {% endfor %}
+  </fieldset>
+  <fieldset class="row compact">
+    <label>Re-release means
+      <select name="age">
+        <option value="any" {% if filters.age == 'any' %}selected{% endif %}>any older film ({{ settings.rerelease_months }}+ months)</option>
+        <option value="5y" {% if filters.age == '5y' %}selected{% endif %}>5+ years old</option>
+        <option value="25y" {% if filters.age == '25y' %}selected{% endif %}>25+ years old</option>
+      </select>
+    </label>
+    <label>Next
+      <select name="range">
+        {% for v, txt in [('7','7 days'),('14','2 weeks'),('30','30 days'),('90','3 months'),('all','everything')] %}
+          <option value="{{ v }}" {% if filters.range == v %}selected{% endif %}>{{ txt }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    {% if settings.plex_enabled %}
+      <label class="toggle"><input type="checkbox" name="hide_watched" value="1" {% if filters.hide_watched %}checked{% endif %}><span>Hide watched</span></label>
+      <label class="toggle"><input type="checkbox" name="not_owned" value="1" {% if filters.not_owned %}checked{% endif %}><span>Not in Plex</span></label>
+    {% endif %}
+    <input type="search" name="q" value="{{ filters.q }}" placeholder="Search titles">
+    <input type="hidden" name="view" value="{{ filters.view }}">
+    <noscript><button type="submit">Apply</button></noscript>
+  </fieldset>
+</form>
+
+<div class="toolbar">
+  <div class="views">
+    <a href="{{ request.url.include_query_params(view='film') }}" class="{% if filters.view == 'film' %}active{% endif %}">By film</a>
+    <a href="{{ request.url.include_query_params(view='date') }}" class="{% if filters.view == 'date' %}active{% endif %}">By date</a>
+  </div>
+  <div class="summary">
+    {{ count }} screening{{ '' if count == 1 else 's' }}
+    · <a href="/feed.xml?{{ query }}" title="RSS of new listings matching these filters">RSS</a>
+    · <a href="/calendar.ics?{{ query }}" title="Calendar feed matching these filters">Calendar</a>
+    {% if settings.radarr_enabled %}· <a href="/radarr/list.json?{{ query }}" title="Radarr Custom List URL matching these filters">Radarr list</a>{% endif %}
+  </div>
+</div>
+
+{% if request.query_params.get('radarr_added') %}<p class="notice ok">Added to Radarr.</p>{% endif %}
+{% if request.query_params.get('radarr_error') %}<p class="notice bad">Radarr couldn't add that film — check <a href="/status">Status</a> and the container log.</p>{% endif %}
+{% if problems %}<p class="notice bad">Couldn't refresh: {{ problems | join(', ') }}. Showing the last good listings. <a href="/status">Details</a></p>{% endif %}
+{% if not last_refresh %}<p class="notice">Fetching showtimes for the first time — this takes a minute. Reload shortly.</p>{% endif %}
+
+{% if filters.view == 'film' %}
+  {% if grouped.now %}
+    <section>
+      <h2>Playing</h2>
+      {% for film in grouped.now %}{{ film_card(film) }}{% endfor %}
+    </section>
+  {% endif %}
+  {% if grouped.soon %}
+    <section>
+      <h2>Coming up</h2>
+      {% for film in grouped.soon %}{{ film_card(film) }}{% endfor %}
+    </section>
+  {% endif %}
+  {% if not grouped.now and not grouped.soon and last_refresh %}<p class="empty">Nothing matches these filters.</p>{% endif %}
+{% else %}
+  {% for d, films in grouped.items() %}
+    <section class="day-section">
+      <h2>{{ "Today" if d == today else day_long(d) }}</h2>
+      {% for film in films %}{{ film_card(film, show_days=False) }}{% endfor %}
+    </section>
+  {% else %}
+    {% if last_refresh %}<p class="empty">Nothing matches these filters.</p>{% endif %}
+  {% endfor %}
+{% endif %}
+
+<footer>
+  {% if last_refresh %}Updated {{ stamp(last_refresh) }}.{% endif %}
+  Film data from <a href="https://www.themoviedb.org/" target="_blank" rel="noopener">TMDB</a>.
+</footer>
+
+<script>
+  // Apply filters as soon as they change; search applies on Enter or after a pause.
+  const form = document.getElementById('filters');
+  let timer;
+  form.addEventListener('change', e => { if (e.target.type !== 'search') form.submit(); });
+  form.querySelector('input[type=search]').addEventListener('input', () => {
+    clearTimeout(timer); timer = setTimeout(() => form.submit(), 700);
+  });
+</script>
+{% endblock %}

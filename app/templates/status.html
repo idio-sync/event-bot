@@ -1,0 +1,43 @@
+{% extends "_base.html" %}
+{% block title %}Status · Showtimes{% endblock %}
+{% block content %}
+<section class="status">
+  <h2>Status</h2>
+  {% if request.query_params.get('started') %}<p class="notice ok">Refresh started. Reload this page in a minute.</p>{% endif %}
+  <p>Last full refresh: {{ stamp(last_refresh) if last_refresh else "never" }} · every {{ settings.refresh_minutes }} minutes.</p>
+  <form method="post" action="/refresh"><button type="submit">Refresh now</button></form>
+
+  <h3>Theaters</h3>
+  <table>
+    <thead><tr><th>Theater</th><th>Last success</th><th>Showings</th><th>Problem</th></tr></thead>
+    <tbody>
+    {% for t in enabled %}
+      {% set r = sources.get(t) %}
+      <tr>
+        <td>{{ THEATERS[t].name }}</td>
+        <td>{{ stamp(local(r.last_success)) if r and r.last_success else "—" }}</td>
+        <td>{{ r.last_count if r and r.last_count is not none else "—" }}</td>
+        <td class="{% if r and r.last_error %}bad{% endif %}">{{ r.last_error if r and r.last_error else "" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% if missing %}<p class="muted">Turned off with THEATERS: {{ missing | join(', ') }}</p>{% endif %}
+
+  <h3>Integrations</h3>
+  <table>
+    <tbody>
+      <tr><td>TMDB</td><td>{{ "configured" if settings.tmdb_key else "not configured — titles won't get posters or original release dates" }}</td></tr>
+      {% for name, st in integrations.items() %}
+        <tr>
+          <td>{{ {'plex_library': 'Plex library', 'plex_watchlist': 'Plex watchlist', 'radarr': 'Radarr'}[name] }}</td>
+          <td class="{% if st and not st.ok %}bad{% endif %}">
+            {% if not st %}not synced yet{% elif st.ok %}synced {{ stamp(local(st.at)) }}{% else %}failed {{ stamp(local(st.at)) }}: {{ st.error }}{% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      <tr><td>Discord alerts</td><td>{{ "on" if settings.discord_webhook else "off" }}</td></tr>
+    </tbody>
+  </table>
+</section>
+{% endblock %}
