@@ -140,3 +140,29 @@ def test_fold_keeps_lines_within_75_octets():
     folded = _fold("DESCRIPTION:" + "é" * 100)
     assert all(len(part.encode()) <= 75 for part in folded.split("\r\n"))
     assert folded.replace("\r\n ", "") == "DESCRIPTION:" + "é" * 100
+
+
+def test_settings_page_saves_prefs_and_removes_follows(populated):
+    from app import prefs as prefs_mod
+
+    s = Settings(data_dir=populated.data_dir, theaters=populated.theaters, discord_webhook="https://discord.test/h")
+    with contextlib.closing(db.connect(s.db_path)) as conn:
+        db.upsert_user(conn, "1", "Alex")
+        db.follow(conn, "1", "tmdb:426", "Vertigo", 1958)
+    app = create_app(s, run_loop=False)
+    with TestClient(app) as client:
+        page = client.get("/settings")
+        assert page.status_code == 200
+        assert "Webhook mode" in page.text and "Alex" in page.text and "Vertigo" in page.text
+        r = client.post("/settings", data={
+            "default_delivery": "dm", "channel_kinds": ["event"], "plex_delivery": "off",
+            "admin_user_id": " 1234 ", "return_days": "45",
+        }, follow_redirects=False)
+        assert r.status_code == 303
+        r = client.post("/settings/unfollow", data={"user_id": "1", "film_key": "tmdb:426"}, follow_redirects=False)
+        assert r.status_code == 303
+    with contextlib.closing(db.connect(s.db_path)) as conn:
+        p = prefs_mod.load(conn, s)
+        assert (p.default_delivery, p.channel_kinds, p.plex_delivery, p.admin_user_id, p.return_days) == \
+            ("dm", ["event"], "off", "1234", 45)
+        assert db.followers(conn) == {}

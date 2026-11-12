@@ -61,11 +61,27 @@ CREATE TABLE IF NOT EXISTS kv (
     value        TEXT NOT NULL,
     updated_at   TEXT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS alerts (
-    tmdb_id      INTEGER NOT NULL,
-    theater      TEXT NOT NULL,
-    sent_at      TEXT NOT NULL,
-    PRIMARY KEY (tmdb_id, theater)
+CREATE TABLE IF NOT EXISTS discord_users (
+    user_id      TEXT PRIMARY KEY,
+    name         TEXT NOT NULL,
+    delivery     TEXT,                      -- 'channel' | 'dm' | NULL = server default
+    updated_at   TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS follows (
+    user_id      TEXT NOT NULL,
+    film_key     TEXT NOT NULL,             -- 'tmdb:<id>' or 'title:<normalized>'
+    title        TEXT NOT NULL,
+    year         INTEGER,
+    created_at   TEXT NOT NULL,
+    PRIMARY KEY (user_id, film_key)
+);
+CREATE TABLE IF NOT EXISTS alert_runs (
+    film_key      TEXT NOT NULL,
+    theater       TEXT NOT NULL,
+    covered_until TEXT NOT NULL,            -- last showing (UTC) of the current run
+    sent          TEXT NOT NULL DEFAULT '[]', -- what was sent this run: 'event', 'rerelease', 'plex', 'follow:<user>'
+    updated_at    TEXT NOT NULL,
+    PRIMARY KEY (film_key, theater)
 );
 """
 
@@ -232,12 +248,84 @@ def kv_set(conn: sqlite3.Connection, key: str, value: Any) -> None:
     conn.commit()
 
 
-def alerted(conn: sqlite3.Connection) -> set[tuple[int, str]]:
-    return {(r["tmdb_id"], r["theater"]) for r in conn.execute("SELECT tmdb_id, theater FROM alerts")}
+def upsert_user(conn: sqlite3.Connection, user_id: str, name: str) -> None:
+    conn.execute(
+        """INSERT INTO discord_users (user_id, name, updated_at) VALUES (?,?,?)
+           ON CONFLICT(user_id) DO UPDATE SET name=excluded.name, updated_at=excluded.updated_at""",
+        (user_id, name, now_iso()),
+    )
+    conn.commit()
 
 
-def mark_alerted(conn: sqlite3.Connection, pairs: Iterable[tuple[int, str]]) -> None:
+def set_delivery(conn: sqlite3.Connection, user_id: str, name: str, delivery: str | None) -> None:
+    upsert_user(conn, user_id, name)
+    conn.execute("UPDATE discord_users SET delivery = ? WHERE user_id = ?", (delivery, user_id))
+    conn.commit()
+
+
+def deliveries(conn: sqlite3.Connection) -> dict[str, str]:
+    """Users who chose a delivery other than the server default."""
+    return {r["user_id"]: r["delivery"] for r in conn.execute(
+        "SELECT user_id, delivery FROM discord_users WHERE delivery IS NOT NULL")}
+
+
+def users(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    return conn.execute(
+        """SELECT u.*, (SELECT COUNT(*) FROM follows f WHERE f.user_id = u.user_id) AS follow_count
+           FROM discord_users u ORDER BY u.name COLLATE NOCASE"""
+    ).fetchall()
+
+
+def follow(conn: sqlite3.Connection, user_id: str, film_key: str, title: str, year: int | None) -> bool:
+    """Returns False if already following."""
+    cur = conn.execute(
+        "INSERT OR IGNORE INTO follows (user_id, film_key, title, year, created_at) VALUES (?,?,?,?,?)",
+        (user_id, film_key, title, year, now_iso()),
+    )
+    conn.commit()
+    return cur.rowcount == 1
+
+
+def unfollow(conn: sqlite3.Connection, user_id: str, film_key: str) -> bool:
+    cur = conn.execute("DELETE FROM follows WHERE user_id = ? AND film_key = ?", (user_id, film_key))
+    conn.commit()
+    return cur.rowcount == 1
+
+
+def follows_of(conn: sqlite3.Connection, user_id: str) -> list[sqlite3.Row]:
+    return conn.execute(
+        "SELECT * FROM follows WHERE user_id = ? ORDER BY title COLLATE NOCASE", (user_id,)
+    ).fetchall()
+
+
+def followers(conn: sqlite3.Connection) -> dict[str, list[str]]:
+    out: dict[str, list[str]] = {}
+    for r in conn.execute("SELECT film_key, user_id FROM follows ORDER BY created_at"):
+        out.setdefault(r["film_key"], []).append(r["user_id"])
+    return out
+
+
+def all_follows(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    return conn.execute(
+        """SELECT f.*, COALESCE(u.name, f.user_id) AS user_name FROM follows f
+           LEFT JOIN discord_users u ON u.user_id = f.user_id ORDER BY f.title COLLATE NOCASE"""
+    ).fetchall()
+
+
+def alert_runs(conn: sqlite3.Connection) -> dict[tuple[str, str], Any]:
+    from app.alerts import Run
+
+    return {
+        (r["film_key"], r["theater"]): Run(datetime.fromisoformat(r["covered_until"]), json.loads(r["sent"]))
+        for r in conn.execute("SELECT film_key, theater, covered_until, sent FROM alert_runs")
+    }
+
+
+def save_alert_runs(conn: sqlite3.Connection, runs: dict[tuple[str, str], Any]) -> None:
     now = now_iso()
-    conn.executemany("INSERT OR IGNORE INTO alerts (tmdb_id, theater, sent_at) VALUES (?,?,?)",
-                     [(t, th, now) for t, th in pairs])
+    conn.executemany(
+        "INSERT OR REPLACE INTO alert_runs (film_key, theater, covered_until, sent, updated_at) VALUES (?,?,?,?,?)",
+        [(fk, th, run.covered_until.astimezone(UTC).isoformat(timespec="seconds"), json.dumps(run.sent), now)
+         for (fk, th), run in runs.items()],
+    )
     conn.commit()

@@ -1,0 +1,110 @@
+{% extends "_base.html" %}
+{% block title %}Settings · Showtimes{% endblock %}
+{% block content %}
+<section class="status settings">
+  <h2>Discord</h2>
+  {% if request.query_params.get('saved') %}<p class="notice ok">Saved. Changes apply from the next refresh.</p>{% endif %}
+
+  {% if mode == 'bot' %}
+    {% if bot and bot.ready %}
+      <p>Bot connected as <b>{{ bot.user }}</b>.
+        {% if bot.invite %}<a href="{{ bot.invite }}" target="_blank" rel="noopener">Invite it to a server</a>.{% endif %}</p>
+    {% elif bot and bot.error %}
+      <p class="notice bad">Bot not connected: {{ bot.error }}</p>
+    {% else %}
+      <p class="notice">Bot connecting… reload in a few seconds.</p>
+    {% endif %}
+  {% elif mode == 'webhook' %}
+    <p>Webhook mode: alerts post to the webhook's channel. Followers are @mentioned there (webhooks can't DM),
+      and slash commands need a bot — set <code>DISCORD_BOT_TOKEN</code> to turn them on.</p>
+  {% else %}
+    <p class="muted">Discord is off. Set <code>DISCORD_BOT_TOKEN</code> (slash commands, DMs) or
+      <code>DISCORD_WEBHOOK_URL</code> (channel posts only) in the container settings.</p>
+  {% endif %}
+  {% if discord_status %}
+    <p class="{% if not discord_status.ok %}bad{% else %}muted{% endif %}">
+      Last delivery {{ stamp(local(discord_status.at)) }}:
+      {% if discord_status.ok %}{{ discord_status.sent }} alert(s) sent{% else %}failed — {{ discord_status.error }}{% endif %}
+    </p>
+  {% endif %}
+
+  <form method="post" action="/settings" class="settings-form">
+    {% if mode == 'bot' %}
+    <label>Alerts channel
+      {% if bot and bot.channels %}
+        <select name="channel_id">
+          <option value="">— choose —</option>
+          {% for cid, name in bot.channels %}
+            <option value="{{ cid }}" {% if cid == p.channel_id %}selected{% endif %}>{{ name }}</option>
+          {% endfor %}
+        </select>
+      {% else %}
+        <input name="channel_id" value="{{ p.channel_id }}" placeholder="Channel ID" inputmode="numeric">
+      {% endif %}
+    </label>
+    {% endif %}
+
+    <fieldset>
+      <legend>Followers get alerts</legend>
+      <label class="radio"><input type="radio" name="default_delivery" value="channel" {% if p.default_delivery == 'channel' %}checked{% endif %}> As an @mention in the alerts channel</label>
+      <label class="radio"><input type="radio" name="default_delivery" value="dm" {% if p.default_delivery == 'dm' %}checked{% endif %} {% if mode != 'bot' %}disabled{% endif %}> By DM {% if mode != 'bot' %}<span class="muted">(needs the bot)</span>{% endif %}</label>
+      <p class="muted">The default for everyone; each person can change their own with <code>/alerts</code>.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Channel feed</legend>
+      <label class="radio"><input type="checkbox" name="channel_kinds" value="event" {% if 'event' in p.channel_kinds %}checked{% endif %}> New special events</label>
+      <label class="radio"><input type="checkbox" name="channel_kinds" value="rerelease" {% if 'rerelease' in p.channel_kinds %}checked{% endif %}> New re-releases</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Your Plex watchlist</legend>
+      {% if not settings.plex_watchlist_enabled %}<p class="muted">Needs <code>PLEX_TOKEN</code>.</p>{% endif %}
+      <label class="radio"><input type="radio" name="plex_delivery" value="dm" {% if p.plex_delivery == 'dm' %}checked{% endif %}> DM me {% if mode != 'bot' %}<span class="muted">(needs the bot; falls back to the channel)</span>{% endif %}</label>
+      <label class="radio"><input type="radio" name="plex_delivery" value="channel" {% if p.plex_delivery == 'channel' %}checked{% endif %}> Post in the channel</label>
+      <label class="radio"><input type="radio" name="plex_delivery" value="off" {% if p.plex_delivery == 'off' %}checked{% endif %}> Off</label>
+    </fieldset>
+
+    <label>Your Discord user ID
+      <input name="admin_user_id" value="{{ p.admin_user_id }}" placeholder="blank = the bot's owner" inputmode="numeric">
+    </label>
+    <p class="muted">Gets Plex watchlist DMs and can use <code>/refresh</code>. Discord → Settings → Advanced → Developer Mode, then right-click your name → Copy User ID.</p>
+
+    <label>Alert again after a break of
+      <input name="return_days" type="number" min="1" max="365" value="{{ p.return_days }}" class="narrow"> days
+    </label>
+
+    <button type="submit">Save</button>
+  </form>
+
+  <h2 id="people">People</h2>
+  {% if users %}
+  <table>
+    <thead><tr><th>Name</th><th>Alerts</th><th>Following</th></tr></thead>
+    <tbody>
+    {% for u in users %}
+      <tr><td>{{ u.name }}</td><td>{{ {'dm': 'DM', 'channel': 'Channel'}.get(u.delivery, 'Default (' ~ p.default_delivery ~ ')') }}</td><td>{{ u.follow_count }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p class="muted">Nobody has used the bot yet.</p>{% endif %}
+
+  <h2 id="follows">Follows</h2>
+  {% if follows %}
+  <table>
+    <thead><tr><th>Film</th><th>Who</th><th></th></tr></thead>
+    <tbody>
+    {% for f in follows %}
+      <tr>
+        <td>{{ f.title }}{% if f.year %} <span class="muted">{{ f.year }}</span>{% endif %}</td>
+        <td>{{ f.user_name }}</td>
+        <td><form method="post" action="/settings/unfollow" class="inline">
+          <input type="hidden" name="user_id" value="{{ f.user_id }}"><input type="hidden" name="film_key" value="{{ f.film_key }}">
+          <button class="badge badge-add" type="submit" title="Remove this follow">Remove</button></form></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p class="muted">No follows yet — people add them with <code>/follow</code>.</p>{% endif %}
+</section>
+{% endblock %}

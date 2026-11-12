@@ -19,7 +19,8 @@ from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Red
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app import config, db, listing, refresh, timefmt
+from app import bot, config, db, listing, prefs as prefs_mod, refresh, timefmt
+from app.bot import ShowtimesBot
 from app.integrations import radarr
 from app.sources import THEATERS, fetchers
 
@@ -41,11 +42,19 @@ def create_app(settings: config.Settings | None = None, run_loop: bool = True) -
     with contextlib.closing(db.connect(settings.db_path)) as conn:
         db.init(conn)
 
+    discord_bot = ShowtimesBot(settings) if settings.discord_bot_token and run_loop else None
+
     @contextlib.asynccontextmanager
     async def lifespan(app: FastAPI):
-        task = asyncio.create_task(_loop(settings)) if run_loop else None
+        tasks = []
+        if discord_bot:
+            tasks.append(asyncio.create_task(bot.run(discord_bot, settings.discord_bot_token)))
+        if run_loop:
+            tasks.append(asyncio.create_task(_loop(settings, discord_bot)))
         yield
-        if task:
+        if discord_bot:
+            await discord_bot.close()
+        for task in tasks:
             task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await task
@@ -120,9 +129,66 @@ def create_app(settings: config.Settings | None = None, run_loop: bool = True) -
             },
         )
 
+    @app.get("/settings", response_class=HTMLResponse)
+    def settings_page(request: Request):
+        with conn() as c:
+            p = prefs_mod.load(c, settings)
+            users = db.users(c)
+            follows = db.all_follows(c)
+            discord_status = db.kv_get(c, "status:discord")
+        if settings.discord_bot_token:
+            mode = "bot"
+        elif settings.discord_webhook:
+            mode = "webhook"
+        else:
+            mode = "off"
+        bot_info = None
+        if discord_bot:
+            ready = discord_bot.is_ready()
+            bot_info = {
+                "ready": ready,
+                "user": str(discord_bot.user) if ready else None,
+                "invite": discord_bot.invite_url(),
+                "channels": discord_bot.text_channels() if ready else [],
+                "error": discord_bot.last_error,
+            }
+        return templates.TemplateResponse(
+            request,
+            "settings.html",
+            {
+                "settings": settings, "p": p, "mode": mode, "bot": bot_info, "users": users,
+                "follows": follows, "discord_status": discord_status,
+                "local": lambda iso: datetime.fromisoformat(iso).astimezone(settings.tz) if iso else None,
+            },
+        )
+
+    @app.post("/settings")
+    async def save_settings(request: Request):
+        form = await request.form()
+        with conn() as c:
+            p = prefs_mod.load(c, settings)
+            p.default_delivery = str(form.get("default_delivery", p.default_delivery))
+            p.channel_id = str(form.get("channel_id", p.channel_id))
+            p.channel_kinds = [str(k) for k in form.getlist("channel_kinds")]
+            p.plex_delivery = str(form.get("plex_delivery", p.plex_delivery))
+            p.admin_user_id = str(form.get("admin_user_id", p.admin_user_id))
+            try:
+                p.return_days = int(str(form.get("return_days", p.return_days)))
+            except ValueError:
+                pass
+            prefs_mod.save(c, p)
+        return RedirectResponse("/settings?saved=1", status_code=303)
+
+    @app.post("/settings/unfollow")
+    async def admin_unfollow(request: Request):
+        form = await request.form()
+        with conn() as c:
+            db.unfollow(c, str(form.get("user_id", "")), str(form.get("film_key", "")))
+        return RedirectResponse("/settings#follows", status_code=303)
+
     @app.post("/refresh")
     async def manual_refresh():
-        asyncio.create_task(refresh.run(settings))
+        asyncio.create_task(refresh.run(settings, discord_bot))
         return RedirectResponse("/status?started=1", status_code=303)
 
     @app.post("/radarr/add/{tmdb_id}")
@@ -289,10 +355,16 @@ def _with_flag(url: str, flag: str) -> str:
     return f"{url}{'&' if '?' in url else '?'}{flag}=1"
 
 
-async def _loop(settings: config.Settings) -> None:
+async def _loop(settings: config.Settings, discord_bot=None) -> None:
+    if discord_bot:
+        # Give the bot a moment to connect so the first refresh can deliver alerts.
+        for _ in range(30):
+            if discord_bot.is_ready():
+                break
+            await asyncio.sleep(1)
     while True:
         try:
-            await refresh.run(settings)
+            await refresh.run(settings, discord_bot)
         except Exception:
             log.exception("Refresh failed")
         await asyncio.sleep(settings.refresh_minutes * 60)

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>baltimore-showtimes</Name>
-  <Repository>baltimore-showtimes:latest</Repository>
+  <Repository>DOCKERHUB_USER/baltimore-showtimes:latest</Repository>
   <Network>bridge</Network>
   <Shell>sh</Shell>
   <Privileged>false</Privileged>
@@ -19,7 +19,10 @@
   <Config Name="Radarr API key" Target="RADARR_API_KEY" Default="" Mode="" Description="Radarr Settings &gt; General" Type="Variable" Display="always" Required="false" Mask="true"></Config>
   <Config Name="Radarr quality profile" Target="RADARR_QUALITY_PROFILE" Default="" Mode="" Description="Name; blank = Radarr's first profile" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
   <Config Name="Radarr root folder" Target="RADARR_ROOT_FOLDER" Default="" Mode="" Description="Path; blank = Radarr's first root folder" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
-  <Config Name="Discord webhook" Target="DISCORD_WEBHOOK_URL" Default="" Mode="" Description="Alerts when Plex watchlist films get showings" Type="Variable" Display="always" Required="false" Mask="true"></Config>
+  <Config Name="Discord bot token" Target="DISCORD_BOT_TOKEN" Default="" Mode="" Description="Slash commands, /follow and DMs; then finish setup on the app's Settings page" Type="Variable" Display="always" Required="false" Mask="true"></Config>
+  <Config Name="Discord webhook" Target="DISCORD_WEBHOOK_URL" Default="" Mode="" Description="Alternative without a bot: channel posts only" Type="Variable" Display="advanced" Required="false" Mask="true"></Config>
+  <Config Name="Discord alerts" Target="DISCORD_ALERTS" Default="watchlist,event,rerelease" Mode="" Description="Starting value for Settings: any of watchlist,event,rerelease (none = off)" Type="Variable" Display="advanced" Required="false" Mask="false">watchlist,event,rerelease</Config>
+  <Config Name="Alert return days" Target="ALERT_RETURN_DAYS" Default="30" Mode="" Description="Starting value for Settings: alert again after this many days without showings" Type="Variable" Display="advanced" Required="false" Mask="false">30</Config>
   <Config Name="Public URL" Target="PUBLIC_URL" Default="" Mode="" Description="How you reach this page, for links in Discord messages" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
   <Config Name="Theaters" Target="THEATERS" Default="charles,senator,parkway" Mode="" Description="Comma-separated: charles, senator, parkway, cinemark-towson (Cinemark: see README)" Type="Variable" Display="advanced" Required="false" Mask="false">charles,senator,parkway</Config>
   <Config Name="Refresh minutes" Target="REFRESH_MINUTES" Default="240" Mode="" Description="How often to fetch (minimum 30)" Type="Variable" Display="advanced" Required="false" Mask="false">240</Config>

@@ -29,8 +29,7 @@ status page; it never wipes listings.
    cleaned title (event suffixes, language notes, "3D" etc. stripped) and the
    source's release year as a hint.
 4. Plex library/watchlist and Radarr library are refreshed (if configured).
-5. Discord alerts are sent for Plex-watchlist films with showings not yet
-   alerted for that theater.
+5. Discord alerts are sent (see "Discord (optional)").
 
 ## Labels
 
@@ -77,8 +76,33 @@ Also: `/feed.xml` (RSS of new showings, honours the same filters),
 
 ## Discord (optional)
 
-`DISCORD_WEBHOOK_URL`: one message per refresh with up to 10 embeds, one per
-newly matched watchlist film × theater, with the upcoming times and a link.
+Two modes. **Bot** (`DISCORD_BOT_TOKEN`, discord.py over the gateway, so no public
+URL is needed) gives slash commands, `/follow` and DMs. **Webhook**
+(`DISCORD_WEBHOOK_URL`) only posts to one channel. The bot runs in the same asyncio
+loop as the web app (`app/bot.py`); command logic lives in `app/commands.py` and
+returns plain reply data, so it is tested without Discord.
+
+People: `discord_users` (name, chosen delivery) and `follows` (user × film key).
+`/follow` autocompletes playing films plus TMDB search results, so films that are not
+showing yet can be followed by TMDB id; without TMDB a typed title is followed by its
+normalized title.
+
+Settings page (`/settings`, stored as `prefs` in `kv`, env vars as starting values):
+alerts channel, default delivery for followers (channel @mention by default, or DM),
+channel feed kinds (new events, new re-releases), the admin's Plex watchlist alerts
+(DM by default, channel, off), the admin's Discord user id (blank = bot owner), and
+the return gap. It also lists users and follows, with a remove button.
+
+Alerts (`app/alerts.py`) happen once per *run*: a film's showings at one theater
+without a gap of the return days. `alert_runs` keeps `covered_until` and what was sent
+this run: `event`, `rerelease`, `plex`, `follow:<user>`. Showings added inside a run
+extend `covered_until` silently; one starting more than the gap later begins a new
+run. Event/re-release feed items only fire when a run starts with newly listed
+showings (or a film returns); follows and the Plex watchlist fire once per run,
+including mid-run follows. `route()` turns due alerts into channel cards (feed items,
+@mentions for followers who get alerts in the channel, Plex in the channel) and DM
+cards. Runs are saved only after the channel post succeeds; a failed DM is logged
+and not retried.
 
 ## Deployment
 

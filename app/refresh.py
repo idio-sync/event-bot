@@ -4,21 +4,17 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections import defaultdict
-from datetime import UTC, datetime, timedelta
 
 import httpx
 
-from app import db, tmdb
+from app import alerts, db, tmdb
 from app.config import Settings
-from app.integrations import discord, plex, radarr
-from app.sources import THEATERS, fetchers
-from app.timefmt import stamp
+from app.integrations import plex, radarr
+from app.sources import fetchers
 
 log = logging.getLogger(__name__)
 
 USER_AGENT = "BaltimoreShowtimes/1.0 (self-hosted personal showtimes page)"
-ALERT_HORIZON_DAYS = 90
 
 _lock = asyncio.Lock()
 
@@ -27,7 +23,8 @@ def client() -> httpx.AsyncClient:
     return httpx.AsyncClient(timeout=30, follow_redirects=True, headers={"User-Agent": USER_AGENT})
 
 
-async def run(settings: Settings) -> None:
+async def run(settings: Settings, bot=None) -> None:
+    """`bot` is the running Discord bot (app.bot.ShowtimesBot) when DISCORD_BOT_TOKEN is set."""
     if _lock.locked():
         log.info("Refresh already running")
         return
@@ -38,10 +35,22 @@ async def run(settings: Settings) -> None:
             matched = await tmdb.resolve(conn, http, settings.tmdb_key)
             log.info("Matched %d new titles to TMDB", matched)
             await _integrations(settings, conn, http)
-            await _alerts(settings, conn, http)
+            sent = await alerts.send(settings, conn, _notifier(settings, bot, http))
+            if sent:
+                log.info("Sent %d Discord alerts", sent)
             db.kv_set(conn, "last_refresh", db.now_iso())
         finally:
             conn.close()
+
+
+def _notifier(settings: Settings, bot, http: httpx.AsyncClient):
+    if settings.discord_bot_token:
+        # Bot mode. If it isn't connected yet, wait for the next refresh rather than
+        # falling back to the webhook (which can't DM).
+        return bot.notifier() if bot is not None and bot.is_ready() else None
+    if settings.discord_webhook:
+        return alerts.WebhookNotifier(http, settings.discord_webhook)
+    return None
 
 
 async def _theaters(settings: Settings, conn, http: httpx.AsyncClient) -> None:
@@ -86,47 +95,3 @@ async def _integrations(settings: Settings, conn, http: httpx.AsyncClient) -> No
         await step("plex_watchlist", wl)
     if settings.radarr_enabled:
         await step("radarr", lambda: radarr.movies(http, settings.radarr_url, settings.radarr_api_key))
-
-
-async def _alerts(settings: Settings, conn, http: httpx.AsyncClient) -> None:
-    if not settings.discord_webhook:
-        return
-    watch = db.kv_get(conn, "plex_watchlist", {})
-    if not watch:
-        return
-    now = datetime.now(UTC)
-    rows = db.upcoming(
-        conn, now.isoformat(timespec="seconds"), (now + timedelta(days=ALERT_HORIZON_DAYS)).isoformat(timespec="seconds"),
-        list(THEATERS),
-    )
-    done = db.alerted(conn)
-    groups: dict[tuple[int, str], list] = defaultdict(list)
-    for r in rows:
-        if r["tmdb_id"] and str(r["tmdb_id"]) in watch and (r["tmdb_id"], r["theater"]) not in done:
-            groups[(r["tmdb_id"], r["theater"])].append(r)
-    if not groups:
-        return
-    embeds = []
-    for (tmdb_id, theater), shows in groups.items():
-        first = shows[0]
-        times = [stamp(datetime.fromisoformat(s["start_utc"]).astimezone(settings.tz)) for s in shows[:8]]
-        more = f"\n…and {len(shows) - 8} more" if len(shows) > 8 else ""
-        th = THEATERS.get(theater)
-        embeds.append(
-            discord.embed(
-                f"{first['film_title'] or first['raw_title']} — {th.name if th else theater}",
-                first["ticket_url"] or (th.url if th else None),
-                "\n".join(times) + more,
-                first["film_poster"] or first["poster_url"],
-            )
-        )
-    n = len(embeds)
-    content = f"🎬 {n} showing{'s' if n != 1 else ''} of films on your Plex watchlist"
-    if settings.public_url:
-        content += f" — {settings.public_url}/?kinds=watchlist&view=film"
-    try:
-        await discord.send(http, settings.discord_webhook, content, embeds)
-    except httpx.HTTPError:
-        log.exception("Discord alert failed; will retry next refresh")
-        return
-    db.mark_alerted(conn, groups.keys())

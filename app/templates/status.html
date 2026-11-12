@@ -36,7 +36,12 @@
           </td>
         </tr>
       {% endfor %}
-      <tr><td>Discord alerts</td><td>{{ "on" if settings.discord_webhook else "off" }}</td></tr>
+      <tr><td>Discord alerts</td><td>
+        {% if settings.discord_webhook and settings.discord_alerts %}
+          {{ settings.discord_alerts | join(', ') }} · again after a {{ settings.alert_return_days }}-day break
+          {% if 'watchlist' in settings.discord_alerts and not settings.plex_watchlist_enabled %}<span class="bad">(watchlist alerts need PLEX_TOKEN)</span>{% endif %}
+        {% else %}off{% endif %}
+      </td></tr>
     </tbody>
   </table>
 </section>

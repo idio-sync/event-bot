@@ -39,6 +39,9 @@ class Settings:
     radarr_quality_profile: str = ""
     radarr_root_folder: str = ""
     discord_webhook: str = ""
+    discord_bot_token: str = ""
+    discord_alerts: tuple[str, ...] = ("watchlist", "event", "rerelease")
+    alert_return_days: int = 30
     parkway_eventive_key: str = ""
     public_url: str = ""
 
@@ -59,6 +62,13 @@ class Settings:
         return bool(self.radarr_url and self.radarr_api_key)
 
 
+def _alert_kinds(raw: str) -> tuple[str, ...]:
+    """'watchlist,event,rerelease' (any subset; 'none' or empty turns alerts off)."""
+    valid = ("watchlist", "event", "rerelease")
+    wanted = {k.strip().lower() for k in raw.split(",")}
+    return tuple(k for k in valid if k in wanted)
+
+
 def load() -> Settings:
     theaters_raw = _env("THEATERS")
     theaters = tuple(t.strip() for t in theaters_raw.split(",") if t.strip()) if theaters_raw else DEFAULT_THEATERS
@@ -76,6 +86,9 @@ def load() -> Settings:
         radarr_quality_profile=_env("RADARR_QUALITY_PROFILE"),
         radarr_root_folder=_env("RADARR_ROOT_FOLDER"),
         discord_webhook=_env("DISCORD_WEBHOOK_URL"),
+        discord_bot_token=_env("DISCORD_BOT_TOKEN"),
+        discord_alerts=_alert_kinds(_env("DISCORD_ALERTS", "watchlist,event,rerelease")),
+        alert_return_days=max(1, _int("ALERT_RETURN_DAYS", 30)),
         parkway_eventive_key=_env("PARKWAY_EVENTIVE_KEY"),
         public_url=_env("PUBLIC_URL").rstrip("/"),
     )
