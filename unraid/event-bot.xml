@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>event-bot</Name>
-  <Repository>DOCKERHUB_USER/event-bot:latest</Repository>
+  <Repository>idiosync000/event-bot:latest</Repository>
   <Network>bridge</Network>
   <Shell>sh</Shell>
   <Privileged>false</Privileged>

@@ -28,8 +28,8 @@ It needs two repository secrets (GitHub → Settings → Secrets and variables �
 ## Run on Unraid
 
 1. Copy `unraid/event-bot.xml` to
-   `/boot/config/plugins/dockerMan/templates-user/my-event-bot.xml` and
-   replace `DOCKERHUB_USER` in its `<Repository>` line with your Docker Hub username.
+   `/boot/config/plugins/dockerMan/templates-user/my-event-bot.xml` (it pulls
+   `idiosync000/event-bot:latest`).
 2. Docker tab → Add Container → pick **event-bot**, fill in the keys you
    use, Apply. The page is on port 8080.
 3. To update: Docker tab → **Check for Updates** → apply the update when one shows.
