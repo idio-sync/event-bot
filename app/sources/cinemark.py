@@ -6,13 +6,15 @@ import asyncio
 from datetime import date, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
+from urllib.parse import urljoin
 
 import httpx
 
-from app.models import Showing
+from app.models import FetchResult, Showing
+from app.sources.transport import get_json
 
 BASE = "https://www.cinemark.com"
-MAX_DAYS_AHEAD = 120
+MAX_DAYS_AHEAD = 365
 REQUEST_GAP_SECONDS = 0.4
 
 
@@ -26,6 +28,8 @@ def _date(raw: str | None) -> date | None:
 
 
 def parse_day(movies: list[dict[str, Any]], theater: str) -> list[Showing]:
+    if not isinstance(movies, list):
+        raise ValueError("Cinemark returned an unexpected movie envelope")
     out: list[Showing] = []
     for movie in movies:
         title = (movie.get("movieTitle") or "").strip()
@@ -41,7 +45,11 @@ def parse_day(movies: list[dict[str, Any]], theater: str) -> list[Showing]:
             for show in print_type.get("showtimes") or []:
                 if show.get("isPrivateWatchParty"):
                     continue
+                if show.get("id") is None or not str(show["id"]).strip():
+                    raise ValueError("Cinemark screening has no ID")
                 start = datetime.fromisoformat(show["startTime"].replace("Z", "+00:00"))
+                if start.tzinfo is None:
+                    raise ValueError("Cinemark screening has no timezone")
                 out.append(
                     Showing(
                         theater=theater,
@@ -50,26 +58,30 @@ def parse_day(movies: list[dict[str, Any]], theater: str) -> list[Showing]:
                         start=start,
                         release_date=_date(movie.get("movieReleaseDate")),
                         tags=tags,
-                        ticket_url=f"{BASE}{movie_url}" if movie_url else None,
+                        ticket_url=urljoin(BASE, movie_url) if movie_url else None,
                         runtime_min=movie.get("movieRuntimeMinutes") or None,
                         synopsis=movie.get("movieSynopsis") or None,
-                        poster_url=movie.get("moviePosterUrl") or None,
+                        poster_url=urljoin(BASE, movie["moviePosterUrl"]) if movie.get("moviePosterUrl") else None,
                         sold_out=show.get("seatsAvailable") == 0,
                     )
                 )
     return out
 
 
-async def fetch(client: httpx.AsyncClient, theater: str, theater_id: int, tz: ZoneInfo) -> list[Showing]:
+async def fetch(
+    client: httpx.AsyncClient, theater: str, theater_id: int, tz: ZoneInfo,
+    days_ahead: int = MAX_DAYS_AHEAD,
+) -> FetchResult:
     params = {"timeZone": str(tz)}
-    resp = await client.get(f"{BASE}/papi/theaters/{theater_id}/showtime-dates", params=params)
-    resp.raise_for_status()
-    horizon = datetime.now(tz).date() + timedelta(days=MAX_DAYS_AHEAD)
-    days = [d for d in resp.json() if _date(d) and _date(d) <= horizon]
+    advertised = await get_json(f"{BASE}/papi/theaters/{theater_id}/showtime-dates", params=params)
+    if not isinstance(advertised, list) or any(not isinstance(d, str) or _date(d) is None for d in advertised):
+        raise ValueError("Cinemark returned an unexpected date list")
+    today = datetime.now(tz).date()
+    horizon = today + timedelta(days=days_ahead)
+    days = sorted({d for d in advertised if today <= _date(d) <= horizon})
     out: list[Showing] = []
     for day in days:
-        r = await client.get(f"{BASE}/papi/theaters/{theater_id}/showtimes", params={"date": day, **params})
-        r.raise_for_status()
-        out.extend(parse_day(r.json(), theater))
+        data = await get_json(f"{BASE}/papi/theaters/{theater_id}/showtimes", params={"date": day, **params})
+        out.extend(parse_day(data, theater))
         await asyncio.sleep(REQUEST_GAP_SECONDS)
-    return out
+    return FetchResult(out, complete=False, warning=f"Partial schedule: Cinemark requested horizon through {horizon}; missing listings are retained")

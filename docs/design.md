@@ -11,10 +11,10 @@ showtimes from a chosen set of Baltimore-area theaters, labels screenings
 | The Charles | Ready Theatre Systems schedule JSON, `app.formovietickets.com/schedules/scheduleV1/L467271.json` | All future shows; `ReleaseUS` (original release), sometimes a TMDB/IMDb link in `webSite` |
 | The Senator | Same system, `L997115.json` | Same format |
 | Cinemark Towson and XD | Cinemark site JSON, `/papi/theaters/1072/showtime-dates` and `/showtimes?date=` | Times in UTC; print type and attributes (XD, 3D, open caption, subtitles) |
-| SNF Parkway | Eventive events API | **Off unless configured** — the only access is an API key; see "Open decisions" |
-| Warehouse Cinemas Rotunda | Its GraphQL API sits behind a Cloudflare browser challenge | **Not implemented** — see "Open decisions" |
+| SNF Parkway | Eventive events API | Automatic browser-key discovery with optional override; completeness unverified |
+| Warehouse Cinemas Rotunda | Movie/ScreeningEvent JSON-LD on its own website | Opt-in; partial coverage, missing shows retained |
 
-Each source is a module with one async `fetch(client) -> list[Showing]`.
+Each source is a module with one async fetch returning showings and, for limited sources, explicit completeness metadata.
 A failing source keeps its last good data and reports the error on the
 status page; it never wipes listings.
 
@@ -23,7 +23,8 @@ status page; it never wipes listings.
 1. Every `REFRESH_MINUTES` (default 240) the app fetches all enabled sources.
 2. Showings are upserted into SQLite (`/data/showtimes.db`). Each keeps
    `first_seen`, which powers "new" badges, the RSS feed and alerts. Future
-   showings that disappear from a successful fetch are marked inactive.
+   showings that disappear from a confirmed complete fetch are marked inactive.
+   Partial snapshots only upsert; missing shows remain until they pass.
 3. Each distinct title is matched to TMDB once (cached): direct TMDB id or
    IMDb id from the source when present, otherwise a title search using a
    cleaned title (event suffixes, language notes, "3D" etc. stripped) and the
@@ -110,12 +111,21 @@ One Docker image (Python 3.13 slim, FastAPI + uvicorn), port 8080, volume
 `/data`. Configuration is environment variables. An Unraid template is in
 `unraid/`.
 
-## Open decisions
+## Source acquisition and completeness
 
-- **Parkway**: Eventive has no public schedule feed; the Parkway site calls
-  Eventive's API with a key embedded in its page. Using that key from another
-  app needs the user's sign-off (or a key/feed from the Parkway).
-- **Warehouse Cinemas Rotunda**: its API and Atom Tickets' page both serve a
-  Cloudflare bot challenge to non-browser clients. Options: skip it, ask the
-  theater for a feed, or run a real headless browser in the container (heavier,
-  and it is still automating past a bot check — user's call).
+Cinemark and Warehouse use a standard-library HTTP transport offloaded to a
+worker thread with bounded timeouts. Access succeeded in development while
+HTTPX received 403s; production network access still needs validation.
+Other integrations continue using HTTPX.
+
+Eventive discovers the browser key published on the Parkway homepage each refresh
+unless PARKWAY_EVENTIVE_KEY supplies an override. Authentication uses headers and
+the program bucket is configurable. Keys stay in memory. Pagination/completeness
+must be verified before absence-based cancellation. Credentials are excluded from
+source errors and logs.
+
+Warehouse discovers movie pages and parses structured screening data rather than
+depending on its GraphQL endpoint. These pages have limited coverage. Partial
+fetches retain existing screenings and surface warnings on Status. The tradeoff
+is that canceled screenings may remain visible until their start time passes.
+See README for environment settings and deployment validation.

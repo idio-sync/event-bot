@@ -113,11 +113,13 @@ def match_key_for(s: Showing) -> str:
     return f"title:{normalize_key(s.match_title or s.title)}:{year}"
 
 
-def save_showings(conn: sqlite3.Connection, theater: str, showings: list[Showing]) -> int:
+def save_showings(
+    conn: sqlite3.Connection, theater: str, showings: list[Showing], *, complete: bool = True
+) -> int:
     """Upsert a successful fetch. Returns the number of showings never seen before.
 
-    Future showings of this theater missing from the fetch are marked inactive
-    (cancelled or moved); past ones are left alone.
+    Only complete snapshots mark missing future showings inactive (cancelled or
+    moved). Partial snapshots only upsert observed showings; past ones remain.
     """
     now = now_iso()
     new = 0
@@ -147,11 +149,12 @@ def save_showings(conn: sqlite3.Connection, theater: str, showings: list[Showing
             ),
         )
         seen.append(s.key)
-    placeholders = ",".join("?" * len(seen)) or "''"
-    conn.execute(
-        f"UPDATE showings SET active = 0 WHERE theater = ? AND start_utc > ? AND key NOT IN ({placeholders})",
-        (theater, now, *seen),
-    )
+    if complete:
+        placeholders = ",".join("?" * len(seen)) or "''"
+        conn.execute(
+            f"UPDATE showings SET active = 0 WHERE theater = ? AND start_utc > ? AND key NOT IN ({placeholders})",
+            (theater, now, *seen),
+        )
     # Attach already-known matches so new showings of known films get their film at once.
     conn.execute(
         """UPDATE showings SET film_key = (SELECT film_key FROM matches m WHERE m.match_key = showings.match_key)
@@ -163,14 +166,15 @@ def save_showings(conn: sqlite3.Connection, theater: str, showings: list[Showing
 
 
 def record_source(conn: sqlite3.Connection, theater: str, ok: bool, count: int = 0, error: str | None = None) -> None:
+    """Record a fetch attempt; successful partial snapshots can carry a coverage warning."""
     now = now_iso()
     if ok:
         conn.execute(
             """INSERT INTO sources (theater, last_attempt, last_success, last_count, last_error)
-               VALUES (?,?,?,?,NULL)
+               VALUES (?,?,?,?,?)
                ON CONFLICT(theater) DO UPDATE SET last_attempt=excluded.last_attempt,
-                   last_success=excluded.last_success, last_count=excluded.last_count, last_error=NULL""",
-            (theater, now, now, count),
+                   last_success=excluded.last_success, last_count=excluded.last_count, last_error=excluded.last_error""",
+            (theater, now, now, count, error),
         )
     else:
         conn.execute(

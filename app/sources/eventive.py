@@ -1,17 +1,21 @@
 """Eventive events API — SNF Parkway.
 
-Only runs when PARKWAY_EVENTIVE_KEY is set; see docs/design.md "Open decisions".
+Uses an explicit key override or discovers the browser key published on the
+Parkway website for each fetch. Key values are kept out of URLs and errors.
 """
 
 from __future__ import annotations
 
+import re
 from datetime import date, datetime
+from html.parser import HTMLParser
 from typing import Any
 
 import httpx
 
-from app.models import Showing
+from app.models import FetchResult, Showing
 
+PARKWAY_HOME = "https://snfparkway.org/"
 API = "https://api.eventive.org/event_buckets/{bucket}/events"
 PARKWAY_BUCKET = "67fb1b7ba2fc1ffee7cc9d0c"
 SCHEDULE_URL = "https://parkway.eventive.org/schedule/{event_id}"
@@ -21,8 +25,40 @@ SCHEDULE_URL = "https://parkway.eventive.org/schedule/{event_id}"
 FILM_TAGS = {"film", "feature film", "short film", "documentary", "open captions"}
 
 
+class _InlineScripts(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.in_script = False
+        self.scripts: list[str] = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "script":
+            self.in_script = not dict(attrs).get("src")
+
+    def handle_endtag(self, tag):
+        if tag == "script":
+            self.in_script = False
+
+    def handle_data(self, data):
+        if self.in_script:
+            self.scripts.append(data)
+
+
+def discover_key(html: str) -> str:
+    """Read only literal apiKey properties in inline scripts; never evaluate JS."""
+    page = _InlineScripts()
+    page.feed(html)
+    pattern = r"(?<![\w$])apiKey\s*:\s*(['\"])([A-Za-z0-9_-]{8,256})\1\s*[,}]"
+    keys = {match.group(2) for script in page.scripts for match in re.finditer(pattern, script)}
+    if len(keys) != 1:
+        raise ValueError("Parkway browser-key discovery failed: expected one published key; set PARKWAY_EVENTIVE_KEY")
+    return keys.pop()
+
+
 def parse(data: Any, theater: str) -> list[Showing]:
-    events = data.get("events", []) if isinstance(data, dict) else data
+    events = data.get("events") if isinstance(data, dict) else data
+    if not isinstance(events, list):
+        raise ValueError("Eventive returned an unexpected events envelope")
     out: list[Showing] = []
     for ev in events or []:
         name = (ev.get("name") or "").strip()
@@ -38,7 +74,11 @@ def parse(data: Any, theater: str) -> list[Showing]:
         if film:
             raw_year = str((film.get("details") or {}).get("year") or "")
             year = int(raw_year) if raw_year.isdigit() else None
+        if ev.get("id") is None or not str(ev["id"]).strip():
+            raise ValueError("Eventive screening has no ID")
         start = datetime.fromisoformat(start_raw.replace("Z", "+00:00"))
+        if start.tzinfo is None:
+            raise ValueError("Eventive screening has no timezone")
         out.append(
             Showing(
                 theater=theater,
@@ -57,9 +97,20 @@ def parse(data: Any, theater: str) -> list[Showing]:
     return out
 
 
-async def fetch(client: httpx.AsyncClient, theater: str, api_key: str) -> list[Showing]:
+async def fetch(
+    client: httpx.AsyncClient, theater: str, api_key: str = "", bucket: str = PARKWAY_BUCKET,
+) -> FetchResult:
+    if not api_key:
+        page = await client.get(PARKWAY_HOME)
+        page.raise_for_status()
+        api_key = discover_key(page.text)
     resp = await client.get(
-        API.format(bucket=PARKWAY_BUCKET), params={"api_key": api_key, "upcoming_only": "true"}
+        API.format(bucket=bucket), params={"upcoming_only": "true"},
+        auth=httpx.BasicAuth(api_key, ""),
+        headers={"Accept-Version": "~1", "Content-Type": "application/json"},
     )
     resp.raise_for_status()
-    return parse(resp.json(), theater)
+    # Eventive's public resource guide does not define pagination guarantees.
+    # Treat this endpoint as partial until authenticated coverage is validated.
+    return FetchResult(parse(resp.json(), theater), complete=False,
+                       warning="Partial schedule: Eventive completeness unverified; missing listings are retained")

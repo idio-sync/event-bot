@@ -10,9 +10,9 @@ Plex, Radarr and Discord tie-ins. Design notes: [docs/design.md](docs/design.md)
 |---|---|
 | The Charles | Works |
 | The Senator | Works |
-| SNF Parkway | Needs `PARKWAY_EVENTIVE_KEY` (see below) |
-| Cinemark Towson and XD | Opt-in; currently blocked (see below) |
-| Warehouse Cinemas Rotunda | Not implemented (see below) |
+| SNF Parkway | Automatic browser-key discovery; optional key override |
+| Cinemark Towson and XD | Opt-in; direct HTTP adapter, deployment access may vary |
+| Warehouse Cinemas Rotunda | Opt-in; structured website data, partial schedule coverage |
 
 ## Publishing the image
 
@@ -43,7 +43,7 @@ All environment variables; everything but `TZ` is optional.
 | Variable | What it does |
 |---|---|
 | `TMDB_API_KEY` | v3 key or v4 read token. Posters, original release years (better re-release detection), Plex/Radarr matching. Strongly recommended. |
-| `THEATERS` | Comma-separated: `charles,senator,parkway,cinemark-towson`. Default `charles,senator,parkway`. |
+| `THEATERS` | Comma-separated: `charles,senator,parkway,cinemark-towson,warehouse-rotunda`. Default `charles,senator,parkway`. |
 | `REFRESH_MINUTES` | Fetch interval, default 240 (min 30). |
 | `RERELEASE_MONTHS` | What "any older film" means in the re-release filter. Default 9 months; the page also offers 5+ and 25+ years. |
 | `PLEX_URL`, `PLEX_TOKEN` | Library and watched badges, "Hide watched" / "Not in Plex" filters. The token also reads your plex.tv watchlist. |
@@ -119,18 +119,40 @@ Every link in the toolbar keeps the page's current filters:
   *Custom Lists*, and paste the URL (for example
   `http://<unraid-ip>:8080/radarr/list.json?kinds=watchlist` or `?kinds=rerelease`).
 
-## Blocked theaters
+## Additional theaters
 
-- **Parkway** sells through Eventive, which has no public feed. Its website reads the
-  schedule from Eventive's API using a key embedded in the page. Setting
-  `PARKWAY_EVENTIVE_KEY` to that key makes this app read the same list. It is the
-  Parkway's key, not yours, so this is your call; asking the Parkway
-  (info@snfparkway.org) for permission or a feed is the clean route.
-- **Cinemark** and **Warehouse Cinemas** put their schedule APIs behind Cloudflare bot
-  checks that reject this app. Getting past them means disguising the app as a
-  browser or running a real headless browser in the container, which this app
-  deliberately doesn't do. Cinemark's code is here and will work if the block lifts
-  (add `cinemark-towson` to `THEATERS` and check the Status page).
+Enable additional theaters through `THEATERS`, for example
+`charles,senator,parkway,cinemark-towson,warehouse-rotunda`. Existing defaults
+are unchanged. Unknown theater names are rejected at startup.
+
+- **Parkway**: automatically discovers the browser API key published by
+  `snfparkway.org` on each refresh. No manual key is needed. Set
+  `PARKWAY_EVENTIVE_KEY` to override discovery; an explicit key is used as-is,
+  without silently falling back to the website. `PARKWAY_EVENTIVE_BUCKET`
+  selects the program bucket (default `67fb1b7ba2fc1ffee7cc9d0c`).
+  Authentication uses headers; discovered keys are kept in memory and never
+  saved to the database or committed. If the page changes or discovery fails,
+  cached showtimes remain and Status reports the failure.
+- **Cinemark Towson**: the existing JSON parser uses a standard-library HTTP
+  transport. This succeeded in development where HTTPX received 403 responses,
+  but access can vary by network. `CINEMARK_DAYS_AHEAD` sets the fetch horizon,
+  default 365 days. A failed day aborts that refresh and preserves prior data.
+- **Warehouse Rotunda**: reads Movie/ScreeningEvent JSON-LD from the theater's
+  own pages and follows movie links for additional screenings. It does not
+  depend on the previously blocked GraphQL endpoint. Website pages can expose
+  only part of the schedule; the Status page reports this limitation.
+
+Limited or unverified schedule snapshots add/update screenings without
+deactivating missing ones. This prevents a short page or fetch horizon from
+removing valid future listings, but a canceled screening may remain until its
+start time passes. Full snapshots can deactivate missing screenings. A verified
+complete empty snapshot clears future listings; ambiguous empty results retain
+last-good data. Check **Status** for access errors, coverage warnings and the
+last successful fetch.
+
+Cinemark and Warehouse require no headless browser or new Python packages.
+Validate fetching from your Unraid network before relying on alerts; no claim
+of complete Warehouse coverage is made.
 
 ## Development
 

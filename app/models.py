@@ -30,6 +30,19 @@ class Showing:
 
 
 @dataclass(frozen=True)
+class FetchResult:
+    """A source snapshot; only complete snapshots can cancel missing showings.
+
+    Partial results upsert their observed screenings while retaining all other
+    cached screenings. Warnings describe coverage limits on the status page.
+    """
+
+    showings: list[Showing]
+    complete: bool = False
+    warning: str | None = None
+
+
+@dataclass(frozen=True)
 class Theater:
     id: str
     name: str

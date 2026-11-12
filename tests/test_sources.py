@@ -66,3 +66,123 @@ def test_eventive_keeps_screenings_and_drops_non_film_events():
     assert heumann.start == datetime(2026, 11, 14, 22, 0, tzinfo=UTC)
     assert heumann.ticket_url.endswith("/schedule/a1")
     assert shows[1].match_title is None
+
+
+def test_cinemark_normalizes_relative_posters():
+    data = json.loads((FIX / "cinemark_day.json").read_text(encoding="utf-8"))
+    data[0]["moviePosterUrl"] = "/poster.jpg"
+    assert cinemark.parse_day(data, "cinemark-towson")[0].poster_url == "https://www.cinemark.com/poster.jpg"
+
+
+def test_cinemark_rejects_missing_identity_and_naive_time():
+    import pytest
+    for show in [{"startTime": "2026-11-14T20:00:00Z"}, {"id": "a", "startTime": "2026-11-14T20:00:00"}]:
+        with pytest.raises(ValueError):
+            cinemark.parse_day([{"movieTitle": "Film", "showtimesByPrintType": [{"showtimes": [show]}]}], "cinemark-towson")
+
+
+def test_eventive_rejects_unknown_envelope_and_invalid_showings():
+    import pytest
+    for data in [{"unexpected": []}, [{"id": None, "name": "Film", "start_time": "2026-11-14T20:00:00Z", "tags": [{"name": "Film"}]}], [{"id": "a", "name": "Film", "start_time": "2026-11-14T20:00:00", "tags": [{"name": "Film"}]}]]:
+        with pytest.raises(ValueError):
+            eventive.parse(data, "parkway")
+
+
+def test_eventive_fetch_uses_header_auth_and_custom_bucket():
+    import asyncio
+    import base64
+    import httpx
+    def handle(request):
+        assert request.url.path == "/event_buckets/custom/events"
+        assert "api_key" not in request.url.params
+        assert request.headers["Authorization"] == "Basic " + base64.b64encode(b"secret:").decode()
+        assert request.headers["Accept-Version"] == "~1"
+        return httpx.Response(200, json={"events": []})
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            result = await eventive.fetch(client, "parkway", "secret", bucket="custom")
+            assert result.showings == []
+            assert not result.complete
+    asyncio.run(run())
+
+
+def test_cinemark_fetch_uses_transport_and_excludes_past_dates(monkeypatch):
+    import asyncio
+    from datetime import timedelta
+    today = datetime.now(TZ).date()
+    calls = []
+    async def get_json(url, params=None):
+        calls.append((url, params))
+        if url.endswith("showtime-dates"):
+            return [(today - timedelta(days=1)).isoformat(), today.isoformat(), (today + timedelta(days=366)).isoformat()]
+        return []
+    monkeypatch.setattr(cinemark, "get_json", get_json, raising=False)
+    monkeypatch.setattr(cinemark, "REQUEST_GAP_SECONDS", 0)
+    result = asyncio.run(cinemark.fetch(None, "cinemark-towson", 1072, TZ, days_ahead=365))
+    assert len(calls) == 2
+    assert result.showings == []
+    assert not result.complete
+
+
+def test_cinemark_failure_does_not_return_partial_day_batch(monkeypatch):
+    import asyncio
+    import pytest
+    from datetime import timedelta
+    today = datetime.now(TZ).date()
+    tomorrow = (today + timedelta(days=1)).isoformat()
+    async def get_json(url, params=None):
+        if url.endswith("showtime-dates"):
+            return [today.isoformat(), tomorrow]
+        if params["date"] == tomorrow:
+            raise RuntimeError("Source HTTP 403")
+        return json.loads((FIX / "cinemark_day.json").read_text(encoding="utf-8"))
+    monkeypatch.setattr(cinemark, "get_json", get_json)
+    monkeypatch.setattr(cinemark, "REQUEST_GAP_SECONDS", 0)
+    with pytest.raises(RuntimeError, match="403"):
+        asyncio.run(cinemark.fetch(None, "cinemark-towson", 1072, TZ))
+
+
+def test_eventive_discovers_browser_key_and_rediscovers_after_rotation():
+    import asyncio
+    import base64
+    import httpx
+    keys = iter(["published-key-one", "published-key-two"])
+    expected = []
+    def handle(request):
+        if request.url.host == "snfparkway.org":
+            key = next(keys)
+            expected.append(key)
+            return httpx.Response(200, text=f"<script>const EventiveDataManager = {{apiKey: '{key}', bucketId: 'bucket'}};</script>")
+        assert "api_key" not in request.url.params
+        assert request.headers["Authorization"] == "Basic " + base64.b64encode((expected[-1] + ":").encode()).decode()
+        return httpx.Response(200, json={"events": []})
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            await eventive.fetch(client, "parkway", "")
+            await eventive.fetch(client, "parkway", "")
+    asyncio.run(run())
+    assert expected == ["published-key-one", "published-key-two"]
+
+
+def test_eventive_key_discovery_fails_safely_when_missing_or_ambiguous():
+    import asyncio
+    import httpx
+    import pytest
+    pages = ["<script>apiKey: dynamicallyComputed()</script>", "<script>const config = {apiKey: 'published-key-one', apiKey: 'published-key-two'};</script>"]
+    for page in pages:
+        def handle(request):
+            assert request.url.host == "snfparkway.org"
+            return httpx.Response(200, text=page)
+        async def run():
+            async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+                with pytest.raises(ValueError) as error:
+                    await eventive.fetch(client, "parkway", "")
+                assert "published-key" not in str(error.value)
+                assert "apiKey:" not in str(error.value)
+        asyncio.run(run())
+
+
+def test_parkway_registry_supports_discovery_without_configured_key():
+    from app.config import Settings
+    from app.sources import fetchers
+    assert callable(fetchers(Settings(theaters=("parkway",)))["parkway"])

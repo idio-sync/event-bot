@@ -19,8 +19,8 @@ def _int(name: str, default: int) -> int:
         return default
 
 
-ALL_THEATERS = ("charles", "senator", "cinemark-towson", "parkway")
-# Cinemark answers this app with a Cloudflare challenge (see docs/design.md), so it is opt-in.
+ALL_THEATERS = ("charles", "senator", "cinemark-towson", "parkway", "warehouse-rotunda")
+# Additional theatres are opt-in; see README for access and coverage limitations.
 DEFAULT_THEATERS = ("charles", "senator", "parkway")
 
 
@@ -43,6 +43,8 @@ class Settings:
     discord_alerts: tuple[str, ...] = ("watchlist", "event", "rerelease")
     alert_return_days: int = 30
     parkway_eventive_key: str = ""
+    parkway_eventive_bucket: str = "67fb1b7ba2fc1ffee7cc9d0c"
+    cinemark_days_ahead: int = 365
     public_url: str = ""
 
     @property
@@ -72,6 +74,9 @@ def _alert_kinds(raw: str) -> tuple[str, ...]:
 def load() -> Settings:
     theaters_raw = _env("THEATERS")
     theaters = tuple(t.strip() for t in theaters_raw.split(",") if t.strip()) if theaters_raw else DEFAULT_THEATERS
+    unknown = set(theaters) - set(ALL_THEATERS)
+    if unknown:
+        raise ValueError("Unknown THEATERS: " + ", ".join(sorted(unknown)))
     return Settings(
         data_dir=_env("DATA_DIR", "/data"),
         tz=ZoneInfo(_env("TZ", "America/New_York") or "America/New_York"),
@@ -90,5 +95,7 @@ def load() -> Settings:
         discord_alerts=_alert_kinds(_env("DISCORD_ALERTS", "watchlist,event,rerelease")),
         alert_return_days=max(1, _int("ALERT_RETURN_DAYS", 30)),
         parkway_eventive_key=_env("PARKWAY_EVENTIVE_KEY"),
+        parkway_eventive_bucket=_env("PARKWAY_EVENTIVE_BUCKET", "67fb1b7ba2fc1ffee7cc9d0c"),
+        cinemark_days_ahead=max(1, _int("CINEMARK_DAYS_AHEAD", 365)),
         public_url=_env("PUBLIC_URL").rstrip("/"),
     )

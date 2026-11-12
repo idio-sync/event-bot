@@ -4,13 +4,16 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from urllib.error import HTTPError
 
 import httpx
 
 from app import alerts, db, tmdb
 from app.config import Settings
 from app.integrations import plex, radarr
+from app.models import FetchResult
 from app.sources import fetchers
+from app.sources.transport import SourceHTTPError
 
 log = logging.getLogger(__name__)
 
@@ -59,18 +62,33 @@ async def _theaters(settings: Settings, conn, http: httpx.AsyncClient) -> None:
             db.record_source(conn, theater, False, error="Not configured")
             continue
         try:
-            showings = await fetch(http)
-        except Exception as exc:  # keep last good data, report on /status
-            log.exception("Fetching %s failed", theater)
-            db.record_source(conn, theater, False, error=f"{type(exc).__name__}: {exc}"[:500])
+            fetched = await fetch(http)
+        except Exception as exc:  # keep last good data; never log credential-bearing URLs
+            error = _source_error(exc)
+            log.error("Fetching %s failed: %s", theater, error)
+            db.record_source(conn, theater, False, error=error)
             continue
-        if not showings:
-            # An empty schedule is far more likely a broken source than a closed theater.
+        result = fetched if isinstance(fetched, FetchResult) else FetchResult(fetched, complete=True)
+        showings = result.showings
+        if not showings and (not isinstance(fetched, FetchResult) or not result.complete):
+            # An unverified empty response is more likely a broken source than closure.
             db.record_source(conn, theater, False, error="Source returned no showings")
             continue
-        new = db.save_showings(conn, theater, showings)
-        db.record_source(conn, theater, True, count=len(showings))
+        new = db.save_showings(conn, theater, showings, complete=result.complete)
+        warning = result.warning or ("Partial schedule; missing cached showings retained" if not result.complete else None)
+        db.record_source(conn, theater, True, count=len(showings), error=warning)
         log.info("%s: %d showings, %d new", theater, len(showings), new)
+
+
+def _source_error(exc: Exception) -> str:
+    """Return useful failure categories without request URLs or arbitrary payloads."""
+    if isinstance(exc, SourceHTTPError):
+        return f"HTTP {exc.status_code}: source request failed"
+    if isinstance(exc, httpx.HTTPStatusError):
+        return f"HTTP {exc.response.status_code}: source request failed"
+    if isinstance(exc, HTTPError):
+        return f"HTTP {exc.code}: source request failed"
+    return f"{type(exc).__name__}: source fetch failed"
 
 
 async def _integrations(settings: Settings, conn, http: httpx.AsyncClient) -> None:
