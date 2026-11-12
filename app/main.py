@@ -289,7 +289,7 @@ def create_app(settings: config.Settings | None = None, run_loop: bool = True) -
         with conn() as c:
             shows = listing.load(c, settings, filters)[:1000]
         stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-        lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//baltimore-showtimes//EN",
+        lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//event-bot//EN",
                  "X-WR-CALNAME:Baltimore Showtimes", "CALSCALE:GREGORIAN"]
         for s in shows:
             start = s["start"].astimezone(UTC)
@@ -300,7 +300,7 @@ def create_app(settings: config.Settings | None = None, run_loop: bool = True) -
             desc = " · ".join([s["event_name"] or "", *[LABELS[x] for x in s["labels"]], *s["formats"]]).strip(" ·")
             lines += [
                 "BEGIN:VEVENT",
-                f"UID:{s['key']}@baltimore-showtimes",
+                f"UID:{s['key']}@event-bot",
                 f"DTSTAMP:{stamp}",
                 f"DTSTART:{start:%Y%m%dT%H%M%SZ}",
                 f"DTEND:{datetime.fromtimestamp(end, UTC):%Y%m%dT%H%M%SZ}",

@@ -1,8 +1,8 @@
 services:
   showtimes:
     build: .
-    image: baltimore-showtimes:latest
-    container_name: showtimes
+    image: event-bot:latest
+    container_name: event-bot
     ports:
       - "8080:8080"
     volumes:

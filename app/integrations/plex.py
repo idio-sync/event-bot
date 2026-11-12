@@ -19,7 +19,7 @@ def _headers(token: str) -> dict[str, str]:
     return {
         "X-Plex-Token": token,
         "Accept": "application/json",
-        "X-Plex-Client-Identifier": "baltimore-showtimes",
+        "X-Plex-Client-Identifier": "event-bot",
         "X-Plex-Product": "Baltimore Showtimes",
     }
 

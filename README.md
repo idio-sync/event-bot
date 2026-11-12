@@ -17,7 +17,7 @@ Plex, Radarr and Discord tie-ins. Design notes: [docs/design.md](docs/design.md)
 ## Publishing the image
 
 GitHub Actions (`.github/workflows/docker.yml`) runs the tests and pushes
-`<dockerhub-user>/baltimore-showtimes` to Docker Hub on every push to `main`
+`<dockerhub-user>/event-bot` to Docker Hub on every push to `main`
 (tags `latest` and `sha-<commit>`; a `v1.2.3` git tag also publishes `1.2.3`).
 It needs two repository secrets (GitHub → Settings → Secrets and variables → Actions):
 
@@ -27,10 +27,10 @@ It needs two repository secrets (GitHub → Settings → Secrets and variables �
 
 ## Run on Unraid
 
-1. Copy `unraid/baltimore-showtimes.xml` to
-   `/boot/config/plugins/dockerMan/templates-user/my-baltimore-showtimes.xml` and
+1. Copy `unraid/event-bot.xml` to
+   `/boot/config/plugins/dockerMan/templates-user/my-event-bot.xml` and
    replace `DOCKERHUB_USER` in its `<Repository>` line with your Docker Hub username.
-2. Docker tab → Add Container → pick **baltimore-showtimes**, fill in the keys you
+2. Docker tab → Add Container → pick **event-bot**, fill in the keys you
    use, Apply. The page is on port 8080.
 3. To update: Docker tab → **Check for Updates** → apply the update when one shows.
 
